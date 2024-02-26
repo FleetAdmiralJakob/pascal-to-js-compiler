@@ -5,11 +5,12 @@ use regex::Regex;
 
 const INPUT_DIR: &str = "./pascal-input";
 
-fn remove_code_outside(full_code: String, from: &str, to: &str) -> String {
+// Returns the code inside the two specified words. The words are compared case-insensitive.
+fn code_inside_of(full_code: String, from: &str, to: &str) -> String {
     let code: Vec<&str> = full_code.lines().collect();
 
-    let position_from = code.iter().position(|&code| code.contains(from));
-    let position_to = code.iter().position(|&code| code.contains(to));
+    let position_from = code.iter().position(|&code| code.to_lowercase().contains(&from.to_lowercase()));
+    let position_to = code.iter().position(|&code| code.to_lowercase().contains(&to.to_lowercase()));
 
     return match (position_from, position_to) {
         (Some(from_index), Some(to_index)) if from_index < to_index => {
@@ -69,15 +70,15 @@ fn main() {
             panic!("Fatal: Syntax error: expected 'begin' after program declaration of program: {}", content.file_name);
         }
 
-        if !content.file_content.ends_with("end.") {
+        if !content.file_content.to_lowercase().ends_with("end.") {
             panic!("Fatal: Syntax error: expected 'end.' at the end of program: {}", content.file_name);
         }
 
-        let main_code = remove_code_outside(content.file_content, "begin", "end.");
+        let main_code = code_inside_of(content.file_content, "begin", "end.");
 
         for line in main_code.lines() {
             let trimmed_line = line.trim();
-            if let Some(captures) = Regex::new(r"^writeln\('(.*?)'\);$").unwrap().captures(trimmed_line) {
+            if let Some(captures) = Regex::new(r"^(?i)writeln\('(.*?)'\);$").unwrap().captures(trimmed_line) {
                 let message = captures.get(1).unwrap().as_str();
                 file.write(format!("console.log('{}');\n", message).as_bytes()).unwrap();
             }
