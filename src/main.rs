@@ -43,7 +43,7 @@ fn main() {
                 file_content: std::fs::read_to_string(&file_name).unwrap(),
                 file_name: path.file_name().unwrap().to_str().unwrap().to_string(),
             };
-            
+
             contents.push(content);
         }
     }
@@ -66,7 +66,24 @@ fn main() {
 
         let mut file = File::create(format!("js-output/{}.js", program_name.to_lowercase())).unwrap();
 
-        if !(content.file_content.split_whitespace().nth(2).unwrap().to_lowercase() == "begin") {
+        let words: Vec<&str> = content.file_content.split_whitespace().collect();
+        
+        let mut end_of_position_of_library_definition: usize = 2; 
+        let mut enable_crt: bool = false;
+
+        if words[2].to_lowercase() == "uses" {
+            let mut i = 3;
+            
+            while words[i].ends_with(";") {
+                if words[i].to_lowercase() == "crt;" {
+                    enable_crt = true;
+                }
+                i += 1;
+            }
+            end_of_position_of_library_definition = i;
+        }
+
+        if !(words[end_of_position_of_library_definition].to_lowercase() == "begin") {
             panic!("Fatal: Syntax error: expected 'begin' after program declaration of program: {}", content.file_name);
         }
 
@@ -81,6 +98,13 @@ fn main() {
             if let Some(captures) = Regex::new(r"^(?i)writeln\('(.*?)'\);$").unwrap().captures(trimmed_line) {
                 let message = captures.get(1).unwrap().as_str();
                 file.write(format!("console.log('{}');\n", message).as_bytes()).unwrap();
+            }
+            if let Some(captures) = Regex::new(r"^(?i)Delay\((.*?)\);$").unwrap().captures(trimmed_line) {
+                if !enable_crt {
+                    panic!("Fatal: Syntax error: 'Delay' is not defined in this scope. Maybe you missed the declaration of the CRT library.");
+                }
+                let delay = captures.get(1).unwrap().as_str();
+                file.write(format!("setTimeout(() => {{}}, {});\n", delay).as_bytes()).unwrap();
             }
         }
 

@@ -10,6 +10,19 @@ This is a simple Pascal to JavaScript compiler. It is written in Rust without us
 2. Run the compiler using `cargo run` in the root directory of the project.
 3. The generated JavaScript files will be in a folder called `js-output`.
 
+## Example
+
+![Example](readme-files/example.png)
+
 ## Supported APIs
 
+### Standard Pascal
+
 - Writeln
+
+### Library APIs
+> [!NOTE]  
+> These get redundant if this compiler gets support for compiling libraries.
+
+**CRT**
+- Delay
