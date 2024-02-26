@@ -20,10 +20,15 @@ fn remove_code_outside(full_code: String, from: &str, to: &str) -> String {
     }
 }
 
+struct Content {
+    file_content: String,
+    file_name: String
+}
+
 fn main() {
     let files = fs::read_dir(INPUT_DIR).unwrap();
     let files: Vec<_> = files.collect();
-    let mut contents: Vec<String> = Vec::with_capacity(files.len());
+    let mut contents: Vec<Content> = Vec::with_capacity(files.len());
 
     for file in &files {
         let file = file.as_ref().unwrap();
@@ -33,20 +38,25 @@ fn main() {
             Some(ext) => ext == "pas",
             None => false
         } {
-            contents.push(std::fs::read_to_string(&file_name).unwrap())
+            let content = Content {
+                file_content: std::fs::read_to_string(&file_name).unwrap(),
+                file_name: path.file_name().unwrap().to_str().unwrap().to_string(),
+            };
+            
+            contents.push(content);
         }
     }
     
     for content in contents {
-        let first_line = content.lines().next().unwrap();
+        let first_line = content.file_content.lines().next().unwrap();
 
         if !(first_line.split_whitespace().nth(0).unwrap() == "program") {
-            panic!("First line of file must be a program declaration");
+            panic!("First line of file must be a program declaration of program: {}", content.file_name);
         }
 
         let program_name = first_line.split_whitespace().nth(1).unwrap();
         if !program_name.ends_with(';') {
-            panic!("Fatal: Syntax error: expected ';' at the end of program declaration");
+            panic!("Fatal: Syntax error: expected ';' at the end of program declaration of program: {}", content.file_name);
         }
 
         let program_name = program_name.trim_end_matches(';');
@@ -55,15 +65,15 @@ fn main() {
 
         let mut file = File::create(format!("js-output/{}.js", program_name.to_lowercase())).unwrap();
 
-        if !(content.split_whitespace().nth(2).unwrap().to_lowercase() == "begin") {
-            panic!("Fatal: Syntax error: expected 'begin' after program declaration");
+        if !(content.file_content.split_whitespace().nth(2).unwrap().to_lowercase() == "begin") {
+            panic!("Fatal: Syntax error: expected 'begin' after program declaration of program: {}", content.file_name);
         }
 
-        if !content.ends_with("end.") {
-            panic!("Fatal: Syntax error: expected 'end.' at the end of program");
+        if !content.file_content.ends_with("end.") {
+            panic!("Fatal: Syntax error: expected 'end.' at the end of program: {}", content.file_name);
         }
 
-        let main_code = remove_code_outside(content, "begin", "end.");
+        let main_code = remove_code_outside(content.file_content, "begin", "end.");
 
         for line in main_code.lines() {
             let trimmed_line = line.trim();
