@@ -21,6 +21,12 @@ fn code_inside_of(full_code: String, from: &str, to: &str) -> String {
     }
 }
 
+fn check_if_ends_with_semicolon(code: &str, file_name: &str) {
+    if !code.ends_with(';') {
+        panic!("Fatal: Syntax error: expected ';' at the end of the function call of program: {}", file_name);
+    }
+}
+
 struct Content {
     file_content: String,
     file_name: String
@@ -95,18 +101,22 @@ fn main() {
 
         for line in main_code.lines() {
             let trimmed_line = line.trim();
-            if let Some(captures) = Regex::new(r"^(?i)writeln\('(.*?)'\);$").unwrap().captures(trimmed_line) {
+            if let Some(captures) = Regex::new(r"^(?i)writeln\('(.*?)'\);?$").unwrap().captures(trimmed_line) {
+                check_if_ends_with_semicolon(line, &content.file_name);
                 let message = captures.get(1).unwrap().as_str();
                 file.write(format!("console.log('{}');\n", message).as_bytes()).unwrap();
             }
-            if let Some(captures) = Regex::new(r"^(?i)Delay\((.*?)\);$").unwrap().captures(trimmed_line) {
+            if let Some(captures) = Regex::new(r"^(?i)Delay\((.*?)\);?$").unwrap().captures(trimmed_line) {
                 if !enable_crt {
                     panic!("Fatal: Syntax error: 'Delay' is not defined in this scope. Maybe you missed the declaration of the CRT library.");
                 }
+                check_if_ends_with_semicolon(line, &content.file_name);
                 let delay = captures.get(1).unwrap().as_str();
                 file.write(format!("setTimeout(() => {{}}, {});\n", delay).as_bytes()).unwrap();
             }
         }
+        
+        // TODO: Show the line where all the errors are happening
 
         file.flush().unwrap();
     }
