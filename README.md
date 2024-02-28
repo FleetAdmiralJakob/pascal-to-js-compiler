@@ -12,7 +12,10 @@ This is a simple Pascal to JavaScript compiler. It is written in Rust without us
 
 ## Example
 
+Code compiled from Pascal to JS:
 ![Example](readme-files/example.png)
+Compiler error for a missing semicolon:
+![Error](readme-files/example-error.png)
 
 ## Supported APIs
 
