@@ -1,7 +1,10 @@
 # Pascal to JS Compiler
-This is a simple Pascal to JavaScript compiler. It is written in Rust without using an external lexer or parser generator _(I don't understand them anyways)_.
+
+This is a simple Pascal to JavaScript compiler. It is written in Rust without using an external lexer or parser
+generator _(I don't understand them anyways)_.
 
 ## Goal
+
 ![Funny LinkedIn Post](readme-files/funny-linkedin-post.png)
 
 ## Usage
@@ -12,9 +15,11 @@ This is a simple Pascal to JavaScript compiler. It is written in Rust without us
 
 ## Example
 
-Code compiled from Pascal to JS:
+<br><br>
+Code compiled from Pascal to JS: <br>
 ![Example](readme-files/example.png)
-Compiler error for a missing semicolon:
+<br><br>
+Compiler error for a missing semicolon: <br>
 ![Error](readme-files/example-error.png)
 
 ## Supported APIs
@@ -24,8 +29,10 @@ Compiler error for a missing semicolon:
 - Writeln
 
 ### Library APIs
+
 > [!NOTE]  
 > These get redundant if this compiler gets support for compiling libraries.
 
 **CRT**
+
 - Delay
