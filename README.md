@@ -1,7 +1,7 @@
 # Pascal to JS Compiler
 
 This is a simple Pascal to JavaScript compiler. It is written in Rust without using an external lexer or parser
-generator _(I don't understand them anyways)_.
+generator _(I don't understand them anyway)_.
 
 ## Goal
 
