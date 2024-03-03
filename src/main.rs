@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Write};
 use regex::Regex;
 
 const INPUT_DIR: &str = "./pascal-input";
@@ -98,6 +98,8 @@ fn main() {
 
             let mut variable_names = HashSet::new();
 
+            let mut output_code = String::new();
+
             for line in variable_declaration_code_lines {
                 let line = line.trim();
                 if line.starts_with("var") && !line.contains(":") || line.is_empty() {
@@ -136,7 +138,7 @@ fn main() {
                     _ => panic!("Unsupported variable type: {}", variable_type),
                 };
 
-                file.write(format!("{} {}{};\n", js_type, variable_name, js_value).as_bytes()).unwrap();
+                output_code.push_str(&format!("{} {}{};\n", js_type, variable_name, js_value))
             }
 
             while words[end_of_variable_declaration_position].to_lowercase() != "begin" {
@@ -154,14 +156,15 @@ fn main() {
 
             let lines_before_main = content.file_content.lines().take_while(|&line| !line.to_lowercase().contains("begin")).count();
             let main_code = code_inside_of(&content.file_content, "begin", "end.");
+            let mut async_behaviour_enabled = false;
 
             for (i, line) in main_code.lines().enumerate() {
                 let trimmed_line = line.trim();
                 let line_number = lines_before_main + i + 2;
-                if let Some(captures) = Regex::new(r"^(?i)writeln\('(.*?)'\);?$").unwrap().captures(trimmed_line) {
+                if let Some(captures) = Regex::new(r"^(?i)writeln\((.*?)\);?$").unwrap().captures(trimmed_line) {
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let message = captures.get(1).unwrap().as_str();
-                    file.write(format!("console.log('{}');\n", message).as_bytes()).unwrap();
+                    output_code.push_str(&format!("console.log({});\n", message));
                 }
                 if let Some(captures) = Regex::new(r"^(?i)Delay\((.*?)\);?$").unwrap().captures(trimmed_line) {
                     if !enable_crt {
@@ -169,11 +172,17 @@ fn main() {
                     }
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let delay = captures.get(1).unwrap().as_str();
-                    file.write(format!("setTimeout(() => {{}}, {});\n", delay).as_bytes()).unwrap();
+                    async_behaviour_enabled = true;
+                    output_code.push_str(&format!("await new Promise(resolve => setTimeout(resolve, {}));\n", delay));
                 }
             }
 
-            file.flush().unwrap();
+            if async_behaviour_enabled {
+                output_code = format!("(async () => {{\n{}}})().catch(console.error);\n", output_code);
+            }
+
+            file.write_all(output_code.as_bytes()).unwrap();
+            file.flush().unwrap()
         } else {
             panic!("Fatal: Syntax error: expected 'program [name];' at the beginning of the program: {}", content.file_name);
         }
