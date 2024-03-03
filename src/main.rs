@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -6,7 +7,7 @@ use regex::Regex;
 const INPUT_DIR: &str = "./pascal-input";
 
 // Returns the code inside the two specified words. The words are compared case-insensitive.
-fn code_inside_of(full_code: String, from: &str, to: &str) -> String {
+fn code_inside_of(full_code: &str, from: &str, to: &str) -> String {
     let code: Vec<&str> = full_code.lines().collect();
 
     let position_from = code.iter().position(|&code| code.to_lowercase().contains(&from.to_lowercase()));
@@ -72,8 +73,10 @@ fn main() {
 
             let words: Vec<&str> = content.file_content.split_whitespace().collect();
 
-            let mut end_of_position_of_library_definition: usize = 2;
+            let mut end_of_library_declaration_position: usize = 2;
             let mut enable_crt: bool = false;
+
+            let mut last_word_of_program_or_library_declaration_code = format!("{};", program_name);
 
             if words[2].to_lowercase() == "uses" {
                 let mut i = 3;
@@ -82,12 +85,65 @@ fn main() {
                     if words[i].to_lowercase() == "crt;" {
                         enable_crt = true;
                     }
+                    last_word_of_program_or_library_declaration_code = words[i].parse().unwrap();
                     i += 1;
                 }
-                end_of_position_of_library_definition = i;
+                end_of_library_declaration_position = i;
+            }
+            
+            let mut end_of_variable_declaration_position = end_of_library_declaration_position;
+
+            let variable_declaration_code = code_inside_of(&content.file_content, &last_word_of_program_or_library_declaration_code, "begin");
+            let variable_declaration_code_lines = variable_declaration_code.lines();
+
+            let mut variable_names = HashSet::new();
+            
+            for line in variable_declaration_code_lines {
+                let line = line.trim();
+                if line.starts_with("var") && !line.contains(":") || line.is_empty() {
+                    continue;
+                }
+
+                let parts: Vec<&str> = line.split(":").collect();
+                let variable_name = parts[0].trim();
+                
+                if variable_names.contains(variable_name) {
+                    panic!("Fatal: Syntax error: Variable {} is declared more than once in program: {}", variable_name, content.file_name);
+                } else {
+                    variable_names.insert(variable_name);
+                }
+                
+                let type_and_maybe_value = parts[1].trim();
+
+                let parts: Vec<&str> = type_and_maybe_value.split("=").collect();
+                let mut variable_type = parts[0].trim();
+                let variable_value = if parts.len() > 1 { parts[1].trim() } else { "" };
+
+                let js_value = if !variable_value.is_empty() {
+                    format!(" = {}", variable_value.trim_end_matches(";"))
+                } else {
+                    if variable_type.ends_with(";") {
+                        variable_type = variable_type.trim_end_matches(";");
+                    } else {
+                        panic!("Fatal: Syntax error: Forgot to put an ; at the end of your variable declaration of program: {}", content.file_name)
+                    }
+                    String::new()
+                };
+
+                let js_type = match variable_type.to_lowercase().as_str() {
+                    "integer" => "let",
+                    "string" => "let",
+                    _ => panic!("Unsupported variable type: {}", variable_type),
+                };
+
+                file.write(format!("{} {}{};\n", js_type, variable_name, js_value).as_bytes()).unwrap();
             }
 
-            if !(words[end_of_position_of_library_definition].to_lowercase() == "begin") {
+            while words[end_of_variable_declaration_position].to_lowercase() != "begin" {
+                end_of_variable_declaration_position += 1;
+            }
+
+            if !(words[end_of_variable_declaration_position].to_lowercase() == "begin") {
                 panic!("Fatal: Syntax error: expected 'begin' after program and library declaration of program: {}", content.file_name);
             }
 
@@ -97,7 +153,7 @@ fn main() {
             }
 
             let lines_before_main = content.file_content.lines().take_while(|&line| !line.to_lowercase().contains("begin")).count();
-            let main_code = code_inside_of(content.file_content, "begin", "end.");
+            let main_code = code_inside_of(&content.file_content, "begin", "end.");
 
             for (i, line) in main_code.lines().enumerate() {
                 let trimmed_line = line.trim();

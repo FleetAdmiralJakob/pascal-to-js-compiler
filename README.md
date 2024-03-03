@@ -22,9 +22,11 @@ Code compiled from Pascal to JS: <br>
 Compiler error for a missing semicolon: <br>
 ![Error](readme-files/example-error.png)
 
-## Supported APIs
+## Supported Features
 
-### Standard Pascal
+- [x] Variables
+
+### Standard Pascal APIs
 
 - Writeln
 
