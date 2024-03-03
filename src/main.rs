@@ -90,14 +90,14 @@ fn main() {
                 }
                 end_of_library_declaration_position = i;
             }
-            
+
             let mut end_of_variable_declaration_position = end_of_library_declaration_position;
 
             let variable_declaration_code = code_inside_of(&content.file_content, &last_word_of_program_or_library_declaration_code, "begin");
             let variable_declaration_code_lines = variable_declaration_code.lines();
 
             let mut variable_names = HashSet::new();
-            
+
             for line in variable_declaration_code_lines {
                 let line = line.trim();
                 if line.starts_with("var") && !line.contains(":") || line.is_empty() {
@@ -105,14 +105,14 @@ fn main() {
                 }
 
                 let parts: Vec<&str> = line.split(":").collect();
-                let variable_name = parts[0].trim();
-                
+                let variable_name = parts[0].trim().trim_start_matches("var").trim();
+
                 if variable_names.contains(variable_name) {
                     panic!("Fatal: Syntax error: Variable {} is declared more than once in program: {}", variable_name, content.file_name);
                 } else {
                     variable_names.insert(variable_name);
                 }
-                
+
                 let type_and_maybe_value = parts[1].trim();
 
                 let parts: Vec<&str> = type_and_maybe_value.split("=").collect();
