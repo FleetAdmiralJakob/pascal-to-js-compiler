@@ -24,7 +24,7 @@ fn code_inside_of(full_code: &str, from: &str, to: &str) -> String {
 
 fn check_if_ends_with_semicolon(code: &str, file_name: &str, line_number: usize) {
     if !code.ends_with(';') {
-        panic!("Fatal: Syntax error: expected ';' at the end of the function call of program: {} at line: {}", file_name, line_number);
+        panic!("Fatal: Syntax error: expected ';' at the end of the function call of program: {file_name} at line: {line_number}");
     }
 }
 
@@ -82,7 +82,7 @@ fn main() {
             let mut end_of_library_declaration_position: usize = 2;
             let mut enable_crt: bool = false;
 
-            let mut last_word_of_program_or_library_declaration_code = format!("{};", program_name);
+            let mut last_word_of_program_or_library_declaration_code = format!("{program_name};");
 
             if words[2].to_lowercase() == "uses" {
                 let mut i = 3;
@@ -116,7 +116,7 @@ fn main() {
                 let variable_name = parts[0].trim().trim_start_matches("var").trim();
 
                 if variables.iter().any(|v| v.name == variable_name) {
-                    panic!("Fatal: Syntax error: Variable {} is declared more than once in program: {}", variable_name, content.file_name);
+                    panic!("Fatal: Syntax error: Variable {variable_name} is declared more than once in program: {}", content.file_name);
                 } else {
                     variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true});
                 }
@@ -141,10 +141,10 @@ fn main() {
                 let js_type = match variable_type.to_lowercase().as_str() {
                     "integer" => "let",
                     "string" => "let",
-                    _ => panic!("Unsupported variable type: {}", variable_type),
+                    _ => panic!("Unsupported variable type: {variable_type}"),
                 };
 
-                output_code.push_str(&format!("{} {}{};\n", js_type, variable_name, js_value))
+                output_code.push_str(&format!("{js_type} {variable_name}{js_value};\n"))
             }
 
             while words[end_of_variable_declaration_position].to_lowercase() != "begin" {
@@ -157,7 +157,7 @@ fn main() {
 
             if !content.file_content.to_lowercase().ends_with("end.") {
                 let line_number = content.file_content.lines().count() + 1;
-                panic!("Fatal: Syntax error: expected 'end.' at the end of program: {} at line: {}", content.file_name, line_number);
+                panic!("Fatal: Syntax error: expected 'end.' at the end of program: {} at line: {line_number}", content.file_name);
             }
 
             let lines_before_main = content.file_content.lines().take_while(|&line| !line.to_lowercase().contains("begin")).count();
@@ -167,10 +167,13 @@ fn main() {
             for (i, line) in main_code.lines().enumerate() {
                 let trimmed_line = line.trim();
                 let line_number = lines_before_main + i + 2;
-                if let Some(captures) = Regex::new(r"^(?i)writeln\((.*?)\);?$").unwrap().captures(trimmed_line) {
+                if let Some(captures) = Regex::new(r"^(?i)Writeln\((.*?)\);?$").unwrap().captures(trimmed_line) {
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let message = captures.get(1).unwrap().as_str();
-                    output_code.push_str(&format!("console.log({});\n", message));
+                    if !message.contains("'") && !variables.iter().any(|v| v.name == message) {
+                        panic!("Fatal: Syntax error: Variable '{message}' used in Writeln function is not declared in the program: {} at line: {line_number}", content.file_name);
+                    }
+                    output_code.push_str(&format!("console.log({message});\n"));
                 }
                 if let Some(captures) = Regex::new(r"^(?i)Delay\((.*?)\);?$").unwrap().captures(trimmed_line) {
                     if !enable_crt {
@@ -179,15 +182,15 @@ fn main() {
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let delay = captures.get(1).unwrap().as_str();
                     if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| v.name == delay)) {
-                        panic!("Fatal: Syntax error: 'Delay' function expects a valid integer or a declared variable as an argument. Found: '{}' at line: {}", delay, line_number);
+                        panic!("Fatal: Syntax error: 'Delay' function expects a valid integer or a declared variable as an argument. Found: '{delay}' at line: {line_number}");
                     }
                     async_behaviour_enabled = true;
-                    output_code.push_str(&format!("await new Promise(resolve => setTimeout(resolve, {}));\n", delay));
+                    output_code.push_str(&format!("await new Promise(resolve => setTimeout(resolve, {delay}));\n"));
                 }
             }
 
             if async_behaviour_enabled {
-                output_code = format!("(async () => {{\n{}}})().catch(console.error);\n", output_code);
+                output_code = format!("(async () => {{\n{output_code}}})().catch(console.error);\n");
             }
 
             file.write_all(output_code.as_bytes()).unwrap();
