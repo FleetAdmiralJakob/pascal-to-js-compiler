@@ -33,6 +33,12 @@ struct Content {
     file_name: String
 }
 
+#[derive(Hash, Eq, PartialEq, Debug)]
+struct Variable {
+    name: String,
+    mutable: bool
+}
+
 fn main() {
     let files = fs::read_dir(INPUT_DIR).unwrap();
     let files: Vec<_> = files.collect();
@@ -96,7 +102,7 @@ fn main() {
             let variable_declaration_code = code_inside_of(&content.file_content, &last_word_of_program_or_library_declaration_code, "begin");
             let variable_declaration_code_lines = variable_declaration_code.lines();
 
-            let mut variable_names = HashSet::new();
+            let mut variables: HashSet<Variable> = HashSet::new();
 
             let mut output_code = String::new();
 
@@ -109,10 +115,10 @@ fn main() {
                 let parts: Vec<&str> = line.split(":").collect();
                 let variable_name = parts[0].trim().trim_start_matches("var").trim();
 
-                if variable_names.contains(variable_name) {
+                if variables.iter().any(|v| v.name == variable_name) {
                     panic!("Fatal: Syntax error: Variable {} is declared more than once in program: {}", variable_name, content.file_name);
                 } else {
-                    variable_names.insert(variable_name);
+                    variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true});
                 }
 
                 let type_and_maybe_value = parts[1].trim();
@@ -172,6 +178,9 @@ fn main() {
                     }
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let delay = captures.get(1).unwrap().as_str();
+                    if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| v.name == delay)) {
+                        panic!("Fatal: Syntax error: 'Delay' function expects a valid integer or a declared variable as an argument. Found: '{}' at line: {}", delay, line_number);
+                    }
                     async_behaviour_enabled = true;
                     output_code.push_str(&format!("await new Promise(resolve => setTimeout(resolve, {}));\n", delay));
                 }
