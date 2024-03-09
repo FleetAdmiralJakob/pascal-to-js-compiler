@@ -3,6 +3,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{Write};
 use regex::Regex;
+use crate::Types::Integer;
 
 const INPUT_DIR: &str = "./pascal-input";
 
@@ -28,15 +29,30 @@ fn check_if_ends_with_semicolon(code: &str, file_name: &str, line_number: usize)
     }
 }
 
+fn str_to_types(s: &str) -> Option<Types> {
+    match s {
+        "string" => Some(Types::String),
+        "integer" => Some(Types::Integer),
+        _ => None,
+    }
+}
+
 struct Content {
     file_content: String,
     file_name: String
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
+enum Types {
+    String,
+    Integer
+}
+
+#[derive(Hash, Eq, PartialEq, Debug)]
 struct Variable {
     name: String,
-    mutable: bool
+    mutable: bool,
+    type_: Types
 }
 
 fn main() {
@@ -117,8 +133,6 @@ fn main() {
 
                 if variables.iter().any(|v| v.name == variable_name) {
                     panic!("Fatal: Syntax error: Variable {variable_name} is declared more than once in program: {}", content.file_name);
-                } else {
-                    variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true});
                 }
 
                 let type_and_maybe_value = parts[1].trim();
@@ -138,13 +152,12 @@ fn main() {
                     String::new()
                 };
 
-                let js_type = match variable_type.to_lowercase().as_str() {
-                    "integer" => "let",
-                    "string" => "let",
-                    _ => panic!("Unsupported variable type: {variable_type}"),
-                };
-
-                output_code.push_str(&format!("{js_type} {variable_name}{js_value};\n"))
+                if let Some(parsed_variable_type) = str_to_types(variable_type) {
+                    variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true, type_: parsed_variable_type });
+                    output_code.push_str(&format!("let {variable_name}{js_value};\n"))
+                } else {
+                    panic!("Unsupported variable type: {variable_type} in program {}", content.file_name)
+                }
             }
 
             while words[end_of_variable_declaration_position].to_lowercase() != "begin" {
@@ -181,7 +194,7 @@ fn main() {
                     }
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let delay = captures.get(1).unwrap().as_str();
-                    if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| v.name == delay)) {
+                    if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| (v.name == delay && v.type_ == Integer))) {
                         panic!("Fatal: Syntax error: 'Delay' function expects a valid integer or a declared variable as an argument. Found: '{delay}' at line: {line_number}");
                     }
                     async_behaviour_enabled = true;
