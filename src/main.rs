@@ -193,7 +193,7 @@ fn main() {
                     }
                     check_if_ends_with_semicolon(line, &content.file_name, line_number);
                     let delay = captures.get(1).unwrap().as_str();
-                    if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| (v.name == delay && v.type_ == Types::Integer))) {
+                    if !(delay.parse::<i32>().is_ok() || variables.iter().any(|v| v.name == delay && v.type_ == Types::Integer)) {
                         panic!("Fatal: Syntax error: 'Delay' function expects a valid integer or a declared variable as an argument. Found: '{delay}' at line: {line_number}");
                     }
                     async_behaviour_enabled = true;
