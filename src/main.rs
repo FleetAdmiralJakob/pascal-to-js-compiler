@@ -116,13 +116,15 @@ fn main() {
 
             let variable_declaration_code = code_inside_of(&content.file_content, &last_word_of_program_or_library_declaration_code, "begin");
             let variable_declaration_code_lines = variable_declaration_code.lines();
+            let lines_before_variable_declaration_code = content.file_content.lines().take_while(|&line| !line.to_lowercase().contains(&last_word_of_program_or_library_declaration_code.to_lowercase())).count();
 
             let mut variables: HashSet<Variable> = HashSet::new();
 
             let mut output_code = String::new();
 
-            for line in variable_declaration_code_lines {
+            for (i, line) in variable_declaration_code_lines.enumerate() {
                 let line = line.trim();
+                let line_number = lines_before_variable_declaration_code + i + 2;
                 if line.starts_with("var") && !line.contains(":") || line.is_empty() {
                     continue;
                 }
@@ -131,7 +133,7 @@ fn main() {
                 let variable_name = parts[0].trim().trim_start_matches("var").trim();
 
                 if variables.iter().any(|v| v.name == variable_name) {
-                    panic!("Fatal: Syntax error: Variable {variable_name} is declared more than once in program: {}", content.file_name);
+                    panic!("Fatal: Syntax error: Variable {variable_name} is declared more than once in program: {} at line: {line_number}", content.file_name);
                 }
 
                 let type_and_maybe_value = parts[1].trim();
@@ -155,7 +157,7 @@ fn main() {
                     variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true, type_: parsed_variable_type });
                     output_code.push_str(&format!("let {variable_name}{js_value};\n"))
                 } else {
-                    panic!("Unsupported variable type: {variable_type} in program {}", content.file_name)
+                    panic!("Unsupported variable type: {variable_type} in program: {} at line: {line_number}", content.file_name)
                 }
             }
 
