@@ -153,11 +153,15 @@ fn main() {
                     String::new()
                 };
 
-                if let Some(parsed_variable_type) = str_to_types(variable_type) {
-                    variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true, type_: parsed_variable_type });
-                    output_code.push_str(&format!("let {variable_name}{js_value};\n"))
-                } else {
-                    panic!("Unsupported variable type: {variable_type} in program: {} at line: {line_number}", content.file_name)
+                let variable_names: Vec<&str> = variable_name.split(',').filter(|s| !s.is_empty()).map(|s| s.trim()).collect();
+
+                for variable_name in &variable_names {
+                    if let Some(parsed_variable_type) = str_to_types(variable_type) {
+                        variables.insert(Variable { name: variable_name.parse().unwrap(), mutable: true, type_: parsed_variable_type });
+                        output_code.push_str(&format!("let {variable_name}{js_value};\n"))
+                    } else {
+                        panic!("Unsupported variable type: {variable_type} in program: {} at line: {line_number}", content.file_name)
+                    }
                 }
             }
 
